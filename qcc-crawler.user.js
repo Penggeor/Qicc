@@ -4,7 +4,7 @@
 // @version      0.1.0
 // @description  try to take over the world!
 // @author       You
-// @match        https://www.qcc.com/web/search?key=*
+// @match        https://www.qcc.com/*
 // ==/UserScript==
 
 //引入Vue
@@ -178,13 +178,14 @@ window.onload = () => {
         })
         setTimeout(() => {
           jumpToCompany(nextCompany)
-        }, Math.random() * 10000)
+        }, Math.random() * 2000)
       } else {
         setPersistanceJSON(localStorageCacheKey, {
           status: Status.Finished,
         })
         console.log('已经到最后一个公司了')
         mergeAllCompanyData()
+        formatData()
       }
     }
   }
@@ -226,6 +227,18 @@ window.onload = () => {
     keys.map((key) => localStorage.removeItem(key))
     localStorage.removeItem(localStorageCacheKey)
   }
+  const formatData = () => {
+    console.log('开始格式化数据')
+    console.log('清理 localStorage cache')
+    localStorage.removeItem(localStorageCacheKey)
+    console.log('清理 localStorage search company')
+    const keys = Object.keys(localStorage).filter((item) =>
+      item.startsWith('company:')
+    )
+    keys.map((key) => localStorage.removeItem(key))
+    console.log('清理 localStorage search company')
+    localStorage.removeItem(localStorageSearchCompanyKey)
+  }
 
   const Status = {
     Pending: 'Pending',
@@ -243,6 +256,7 @@ window.onload = () => {
     resize
   ></el-input>
   <el-button @click="click">{{ status === "Downloading"? "下载中" : "开始下载" }}</el-button>
+  <el-button @click="formatData">一键清空所有数据【出错时使用】</el-button>
 </div>
 <style>
   #app {
@@ -252,7 +266,6 @@ window.onload = () => {
     left: 1rem;
     background: white;
     width: 40vw;
-    height: 20vh;
     padding: 1rem;
     border-radius: 1rem;
     border: 1px solid #ccc;
@@ -322,15 +335,3 @@ window.onload = () => {
   app.use(ElementPlus)
   app.mount('#app')
 }
-
-// let cache
-
-// function init() {
-//   const _cache = localStorage.getItem(localStorageCacheKey)
-//   if (cache) {
-//     cache = JSON.parse(_cache)
-//   }
-
-//   const nextCompany = cache.nextCompany
-//   const status = cache.status
-// }
