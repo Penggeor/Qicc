@@ -18,7 +18,7 @@
         ，第一列是填充变量的名字，比如 当前公司、法人
       </div>
     </el-upload>
-    <el-input v-model="outputName" placeholder="输出每个 .docx 名称，名称为填充变量，比如：当前公司名、法人，不填的话默认为连续数字" />
+    <el-input v-model="outputName" placeholder="输出每个 .docx 名称，名称为填充变量，比如：当前公司、法人，不填的话默认为连续数字" />
     <el-space>
       <el-button @click="merge">合成</el-button>
     </el-space>
@@ -112,8 +112,13 @@ const merge = async () => {
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     });
 
+    let name = index
+    if(outputName.value && record[outputName.value]) {
+      name = record[outputName.value]
+    }
+
     files.push({
-      name: `${outputName.value || index}.docx`,
+      name: `${name}.docx`,
       file: out
     })
   }
