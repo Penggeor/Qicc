@@ -19,9 +19,9 @@
       </div>
     </el-upload>
     <el-input v-model="outputName" placeholder="输出每个 .docx 名称，名称为填充变量，比如：当前公司、法人，不填的话默认为连续数字" />
-    <el-space>
-      <el-button @click="merge">合成</el-button>
-    </el-space>
+    <div class="center">
+      <el-button @click="merge" type="primary">点击生成</el-button>
+    </div>
   </div>
 </template>
 <script lang="tsx" setup>
@@ -138,5 +138,10 @@ const merge = async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
 }
 </style>
