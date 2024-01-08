@@ -37,6 +37,7 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 import PizZipUtils from "pizzip/utils/index.js";
 import { saveAs } from "file-saver";
+import JSZip from 'jszip';
 
 const csvFile = ref<UploadUserFile>()
 const docsFile = ref<UploadUserFile>()
@@ -62,21 +63,16 @@ const readFileIntoArrayBuffer = async (fd: File): Promise<ArrayBuffer> =>
       resolve(reader.result as ArrayBuffer);
     };
     reader.readAsArrayBuffer(fd);
-    // reader.readAsBinaryString(fd);
   });
 
 const merge = async () => {
-  // console.log(csvFile.value, docsFile.value)
-  // if (!csvFile.value || !docsFile.value) {
-  //   ElMessage.warning('请上传 CSV 和 Doc 文件。')
-  //   return
-  // }
+  console.log(csvFile.value, docsFile.value)
+  if (!csvFile.value || !docsFile.value) {
+    ElMessage.warning('请上传 CSV 和 Doc 文件。')
+    return
+  }
 
   console.log(docsFile.value?.raw)
-  const template = await readFileIntoArrayBuffer(docsFile.value!.raw)
-
-  // 读取 docx 文件
-  const zip = new PizZip(template);
 
   // 读取 csv 文件
   const csvData = await new Promise((resolve, reject) => {
@@ -88,9 +84,16 @@ const merge = async () => {
   })
   console.log('CSV 数据', csvData)
 
+  const files = []
+
   for (const [index, record] of Object.entries(csvData.data)) {
     console.log(record)
     console.log(index)
+
+    const template = await readFileIntoArrayBuffer(docsFile.value!.raw)
+
+    // 读取 docx 文件
+    const zip = new PizZip(template);
 
     const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true })
 
@@ -102,6 +105,7 @@ const merge = async () => {
     } catch (error) {
       console.log('error')
       console.error(error)
+      ElMessage.error(`第 ${index} 个文件合成失败，请检查 CSV 文件和 DOCX 模板文件。`)
     }
 
     const out = doc.getZip().generate({
@@ -111,7 +115,20 @@ const merge = async () => {
     });
 
     // Output the document using Data-URI
-    saveAs(out, `output-${index}.docx`);
+    // saveAs(out, `output-${index}.docx`);
+
+    files.push(out)
   }
+
+  console.log(files)
+
+  const zip = new JSZip();
+  files.map((file, index) => {
+    zip.file(`output-${index}.docx`, file)
+  })
+
+  const content = await zip.generateAsync({ type: "blob" });
+  console.log(content)
+  saveAs(content, "output.zip");
 }
 </script>
