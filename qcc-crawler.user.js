@@ -10,7 +10,8 @@
 //引入Vue
 let script = document.createElement('script')
 script.setAttribute('type', 'text/javascript')
-script.src = 'https://cdn.jsdelivr.net/npm/vue@next'
+// script.src = 'https://cdn.jsdelivr.net/npm/vue@next'
+script.src= 'https://unpkg.com/vue'
 document.documentElement.appendChild(script)
 //引入element-plus的CSS样式文件
 let link = document.createElement('link')
@@ -252,7 +253,7 @@ window.onload = () => {
     v-model="textarea"
     :rows="4"
     type="textarea"
-    placeholder="Please input"
+    placeholder="输入公司名，按行分割"
     resize
   ></el-input>
   <el-button @click="click">{{ status === "Downloading"? "下载中" : "开始下载" }}</el-button>
