@@ -18,13 +18,13 @@
         </div>
       </template>
     </el-upload> -->
+    <el-upload action="#" :auto-upload="false" :on-change="handleDocsUpload">
+      <el-button slot="trigger" size="small" type="primary">上传 DOCX 模板文件，填充变量请用花括号形式： {company}</el-button>
+    </el-upload>
     <el-upload action="#" :auto-upload="false" :on-change="handleCSVUpload">
-      <el-button slot="trigger" size="small" type="primary">Choose CSV</el-button>
+      <el-button slot="trigger" size="small" type="primary">上传 CSV 文件，第一列是填充变量的名字，比如 company</el-button>
     </el-upload>
 
-    <el-upload action="#" :auto-upload="false" :on-change="handleDocsUpload">
-      <el-button slot="trigger" size="small" type="primary">Choose Doc</el-button>
-    </el-upload>
     <el-button @click="merge">合成</el-button>
   </div>
 </template>
@@ -33,29 +33,54 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadProps, UploadUserFile } from 'element-plus'
 import Papa from 'papaparse'
-import mammoth from 'mammoth'
+import Docxtemplater from "docxtemplater";
+import PizZip from "pizzip";
+import PizZipUtils from "pizzip/utils/index.js";
+import { saveAs } from "file-saver";
 
 const csvFile = ref<UploadUserFile>()
 const docsFile = ref<UploadUserFile>()
 
 const handleCSVUpload = (file) => {
+  console.log(file)
   csvFile.value = file
 }
 
 const handleDocsUpload = (file) => {
+  console.log(file)
   docsFile.value = file
 }
 
+const readFileIntoArrayBuffer = async (fd: File): Promise<ArrayBuffer> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (e) => {
+      console.log(e)
+
+      console.log(reader.result)
+      resolve(reader.result as ArrayBuffer);
+    };
+    reader.readAsArrayBuffer(fd);
+    // reader.readAsBinaryString(fd);
+  });
+
 const merge = async () => {
-  console.log(csvFile.value, docsFile.value)
-  if (!csvFile.value || !docsFile.value) {
-    ElMessage.warning('请上传 CSV 和 Doc 文件。')
-    return
-  }
+  // console.log(csvFile.value, docsFile.value)
+  // if (!csvFile.value || !docsFile.value) {
+  //   ElMessage.warning('请上传 CSV 和 Doc 文件。')
+  //   return
+  // }
+
+  console.log(docsFile.value?.raw)
+  const template = await readFileIntoArrayBuffer(docsFile.value!.raw)
+
+  // 读取 docx 文件
+  const zip = new PizZip(template);
 
   // 读取 csv 文件
   const csvData = await new Promise((resolve, reject) => {
-    Papa.parse(csvFile.value.raw, {
+    Papa.parse(csvFile.value!.raw, {
       complete: resolve,
       error: reject,
       header: true
@@ -63,19 +88,30 @@ const merge = async () => {
   })
   console.log('CSV 数据', csvData)
 
-  // 读取 doc 文件
-  const docArrayBuffer = await docsFile.value.raw.arrayBuffer()
-  const docContent = await mammoth.extractRawText({ arrayBuffer: docArrayBuffer })
+  for (const [index, record] of Object.entries(csvData.data)) {
+    console.log(record)
+    console.log(index)
 
-  // 替换 doc 文件内容
-  let newDocContent = docContent.value
-  csvData.data.forEach((row, index) => {
-    Object.values(row).forEach((value, i) => {
-      newDocContent = newDocContent.replace(new RegExp(`\\$${i + 1}\\$`, 'g'), value)
-    })
-  })
+    const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true })
 
-  // 保存新的 doc 文件
-  // 这里需要使用适合你的方法来保存文件，例如使用 FileSaver.js
+    doc.setData(record);
+
+    try {
+      // render the document (replace all occurences of {first_name} by John, {last_name} by Doe, ...)
+      doc.render();
+    } catch (error) {
+      console.log('error')
+      console.error(error)
+    }
+
+    const out = doc.getZip().generate({
+      type: "blob",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    });
+
+    // Output the document using Data-URI
+    saveAs(out, `output-${index}.docx`);
+  }
 }
 </script>
